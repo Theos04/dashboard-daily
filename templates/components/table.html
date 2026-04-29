@@ -1,0 +1,26 @@
+{% macro table(headers=[], rows=[]) %}
+<table class="min-w-full text-sm text-left">
+  <thead class="bg-gray-100 text-gray-600 uppercase">
+    <tr>
+      {% for h in headers %}
+        <th class="px-6 py-3">{{ h }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-gray-200">
+    {% if rows %}
+      {% for row in rows %}
+        <tr class="hover:bg-gray-50 transition">
+          {% for cell in row %}
+            <td class="px-6 py-3">{{ cell }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td colspan="{{ headers|length }}" class="text-center py-4 text-gray-500">No data available</td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>
+{% endmacro %}

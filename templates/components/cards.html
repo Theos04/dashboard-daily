@@ -1,0 +1,6 @@
+{% macro stat_card(title, value, color='blue') %}
+<div class="card p-5 bg-white rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1">
+  <h2 class="text-gray-600 font-semibold">{{ title }}</h2>
+  <div class="value text-3xl font-bold text-{{ color }}-600 mt-2">{{ value }}</div>
+</div>
+{% endmacro %}

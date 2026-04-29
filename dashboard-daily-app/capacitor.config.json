@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.dashboarddaily",
+  "appName": "dashboard-daily-app",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

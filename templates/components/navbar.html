@@ -1,0 +1,52 @@
+<!-- Collapsible Sidebar -->
+<nav id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-50">
+    <!-- Sidebar Header -->
+    <div class="flex items-center justify-between p-4 border-b border-gray-700">
+      <h2 class="text-lg font-semibold">📊 Dashboard</h2>
+      <button id="closeSidebar" class="md:hidden text-gray-400 hover:text-white">✖️</button>
+    </div>
+  
+    <!-- Navigation Links -->
+    <div class="p-4 space-y-4">
+      <a href="/" class="block py-2 px-3 rounded-lg hover:bg-gray-800 transition">🏠 Home</a>
+      <a href="/wallet" class="block py-2 px-3 rounded-lg hover:bg-gray-800 transition">💰 Wallet</a>
+      <a href="/stats" class="block py-2 px-3 rounded-lg hover:bg-gray-800 transition">📈 Stats</a>
+  
+      <!-- Divider -->
+      <div class="border-t border-gray-700 my-3"></div>
+  
+      <!-- Utils Section -->
+      <div>
+        <h3 class="text-sm uppercase text-gray-400 mb-2">⚙️ Utils</h3>
+        <a href="/utils/followup" class="block py-2 px-3 rounded-lg hover:bg-gray-800 transition">⏰ Manual Follow-up</a>
+        <a href="/utils/settings" class="block py-2 px-3 rounded-lg hover:bg-gray-800 transition">🧩 Settings</a>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Top Navbar -->
+  <header class="flex items-center justify-between px-6 py-3 bg-white shadow sticky top-0 z-40">
+    <div class="flex items-center gap-3">
+      <button id="openSidebar" class="md:hidden text-gray-600 hover:text-black text-2xl">☰</button>
+      <input type="text" placeholder="Search..." class="border rounded-lg px-3 py-1 w-48 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+  
+    <div class="flex items-center gap-4">
+      <span class="text-gray-600">👋 Hi, <strong>Harsh</strong></span>
+      <img src="/static/icons/profile.svg" alt="Profile" class="w-8 h-8 rounded-full border cursor-pointer hover:scale-105 transition">
+    </div>
+  </header>
+  
+  <script>
+  const sidebar = document.getElementById('sidebar');
+  const openSidebar = document.getElementById('openSidebar');
+  const closeSidebar = document.getElementById('closeSidebar');
+  
+  openSidebar?.addEventListener('click', () => {
+    sidebar.classList.remove('-translate-x-full');
+  });
+  closeSidebar?.addEventListener('click', () => {
+    sidebar.classList.add('-translate-x-full');
+  });
+  </script>
+  

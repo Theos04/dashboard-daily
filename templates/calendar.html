@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+{% from "components/cards.html" import stat_card %}
+{% from "components/table.html" import table %}
+
+{% block header_buttons %}
+<button id="refreshBtn" class="bg-white text-blue-600 px-3 py-2 rounded-lg font-semibold hover:bg-blue-50 transition">
+  Refresh
+</button>
+<button id="addTaskBtn" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-semibold hover:bg-blue-700 transition ml-2">
+  + Add Task
+</button>
+<div id="lastUpdated" class="text-sm opacity-80 ml-4">Updated just now</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Cards -->
+<div class="grid md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6 mb-6">
+  {{ stat_card("Total Tasks", 0, "blue") }}
+  {{ stat_card("Completed Tasks", 0, "green") }}
+  {{ stat_card("Pending Tasks", 0, "red") }}
+</div>
+
+<!-- Calendar Table -->
+<section class="bg-white rounded-xl shadow overflow-hidden">
+  <div class="p-4 border-b">
+    <h3 class="text-lg font-semibold text-gray-700">Calendar Tasks</h3>
+  </div>
+  {{ table(
+      headers=["Task Name", "Date", "Time", "Status", "Actions"],
+      rows=[]
+  ) }}
+</section>
+
+<!-- Add Task Modal -->
+<div id="addTaskModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-xl p-6 w-96">
+    <h2 class="text-lg font-bold mb-4">Add New Task</h2>
+    <form id="addTaskForm" class="space-y-3">
+      <input type="text" id="taskName" placeholder="Task Name" class="w-full border px-3 py-2 rounded">
+      <input type="date" id="taskDate" class="w-full border px-3 py-2 rounded">
+      <input type="time" id="taskTime" class="w-full border px-3 py-2 rounded">
+      <select id="taskStatus" class="w-full border px-3 py-2 rounded">
+        <option value="Pending">Pending</option>
+        <option value="Completed">Completed</option>
+      </select>
+      <div class="flex justify-end space-x-2 mt-4">
+        <button type="button" id="cancelAddTask" class="px-3 py-2 rounded bg-gray-300 hover:bg-gray-400">Cancel</button>
+        <button type="submit" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Add Task</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const refreshBtn = document.getElementById('refreshBtn');
+const lastUpdatedEl = document.getElementById('lastUpdated');
+const addTaskBtn = document.getElementById('addTaskBtn');
+const addTaskModal = document.getElementById('addTaskModal');
+const cancelAddTask = document.getElementById('cancelAddTask');
+const addTaskForm = document.getElementById('addTaskForm');
+
+// Open/close modal
+addTaskBtn.addEventListener('click', () => addTaskModal.classList.remove('hidden'));
+cancelAddTask.addEventListener('click', () => addTaskModal.classList.add('hidden'));
+
+// Fetch & render tasks
+async function fetchTasks() {
+  try {
+    const res = await fetch('/api/calendar/list');
+    const data = await res.json();
+
+    // Update stats
+    const cards = document.querySelectorAll('#statsGrid .card .value');
+    cards[0].textContent = data.total_tasks ?? 0;
+    cards[1].textContent = data.completed_tasks ?? 0;
+    cards[2].textContent = data.pending_tasks ?? 0;
+
+    // Update table
+    const tbody = document.querySelector("tbody");
+    tbody.innerHTML = "";
+    if (data.tasks?.length) {
+      data.tasks.forEach(task => {
+        const row = `<tr class="hover:bg-gray-50 transition-all duration-200">
+          <td class="px-6 py-3 font-medium text-gray-800">${task.name}</td>
+          <td class="px-6 py-3 text-gray-600">${task.date}</td>
+          <td class="px-6 py-3 text-gray-600">${task.time}</td>
+          <td class="px-6 py-3 text-gray-500">${task.status}</td>
+          <td class="px-6 py-3">
+            <button class="deleteBtn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-id="${task.id}">Delete</button>
+          </td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+
+      // Add delete functionality
+      document.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const taskId = btn.dataset.id;
+          await fetch(`/api/calendar/delete/${taskId}`, { method: 'DELETE' });
+          fetchTasks();
+        });
+      });
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">No tasks found</td></tr>';
+    }
+
+    lastUpdatedEl.textContent = "🕒 Updated at " + new Date().toLocaleTimeString();
+  } catch (err) {
+    console.error(err);
+    lastUpdatedEl.textContent = "⚠️ Update failed";
+  }
+}
+
+// Handle adding a new task
+addTaskForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const task = {
+    name: document.getElementById('taskName').value,
+    date: document.getElementById('taskDate').value,
+    time: document.getElementById('taskTime').value,
+    status: document.getElementById('taskStatus').value
+  };
+  await fetch('/api/calendar/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(task)
+  });
+  addTaskModal.classList.add('hidden');
+  addTaskForm.reset();
+  fetchTasks();
+});
+
+// Initial load & refresh
+fetchTasks();
+setInterval(fetchTasks, 60000);
+refreshBtn.addEventListener('click', fetchTasks);
+</script>
+{% endblock %}

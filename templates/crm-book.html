@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+{% from "components/cards.html" import stat_card %}
+{% from "components/table.html" import table %}
+
+{% block header_buttons %}
+<button id="refreshBtn" class="bg-white text-blue-600 px-3 py-2 rounded-lg font-semibold hover:bg-blue-50 transition">
+  Refresh
+</button>
+<div id="lastUpdated" class="text-sm opacity-80">Updated just now</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Cards -->
+<div class="grid md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+  {{ stat_card("Total Customers", 0, "blue") }}
+  {{ stat_card("New Leads", 0, "green") }}
+  {{ stat_card("Follow-ups", 0, "red") }}
+</div>
+
+<!-- Personas Carousel -->
+<section class="mt-6 bg-white rounded-xl shadow p-4">
+  <h3 class="text-lg font-semibold text-gray-700 mb-4">👤 Personas</h3>
+  <div id="personaCarousel" class="flex space-x-4 overflow-x-auto no-scrollbar">
+    <!-- Example Persona Cards -->
+    <div class="flex-shrink-0 w-48 h-36 bg-blue-50 rounded-xl p-4 flex flex-col items-center justify-center">
+      <img src="https://www.svgrepo.com/show/452030/avatar-default.svg" class="w-12 h-12 rounded-full mb-2" alt="Persona">
+      <span class="font-semibold text-gray-700 truncate">John Doe</span>
+      <span class="text-sm text-gray-500">Regular Customer</span>
+    </div>
+    <div class="flex-shrink-0 w-48 h-36 bg-green-50 rounded-xl p-4 flex flex-col items-center justify-center">
+      <img src="https://www.svgrepo.com/show/452030/avatar-default.svg" class="w-12 h-12 rounded-full mb-2" alt="Persona">
+      <span class="font-semibold text-gray-700 truncate">Jane Smith</span>
+      <span class="text-sm text-gray-500">New Lead</span>
+    </div>
+    <!-- Add more personas dynamically -->
+  </div>
+  <!-- Carousel Controls -->
+  <div class="flex justify-between mt-2">
+    <button onclick="scrollCarousel(-1)" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">⬅️</button>
+    <button onclick="scrollCarousel(1)" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">➡️</button>
+  </div>
+</section>
+
+<!-- CRM Table -->
+<section class="mt-6 bg-white rounded-xl shadow overflow-hidden">
+  <div class="p-4 border-b">
+    <h3 class="text-lg font-semibold text-gray-700">Customer Interactions</h3>
+  </div>
+  {{ table(
+      headers=["Customer", "Interaction Type", "Notes", "Date"],
+      rows=[]
+  ) }}
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const refreshBtn = document.getElementById('refreshBtn');
+const lastUpdatedEl = document.getElementById('lastUpdated');
+const statsGrid = document.getElementById('statsGrid');
+const personaCarousel = document.getElementById('personaCarousel');
+
+function scrollCarousel(direction) {
+  personaCarousel.scrollBy({ left: direction * 200, behavior: 'smooth' });
+}
+
+async function fetchData() {
+  try {
+    const res = await fetch('/api/crm/list');  // API endpoint for CRM data
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Update stats cards
+    const cards = statsGrid?.querySelectorAll('.card .value') || [];
+    if (cards.length >= 3) {
+      cards[0].textContent = data.total_customers ?? 0;
+      cards[1].textContent = data.new_leads ?? 0;
+      cards[2].textContent = data.follow_ups ?? 0;
+
+      gsap.fromTo(".value",
+        { y: -8, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: "power2.out" }
+      );
+    }
+
+    // Update personas
+    personaCarousel.innerHTML = "";
+    if (data.personas?.length) {
+      data.personas.forEach(p => {
+        const personaCard = `
+          <div class="flex-shrink-0 w-48 h-36 bg-blue-50 rounded-xl p-4 flex flex-col items-center justify-center">
+            <img src="${p.avatar || 'https://www.svgrepo.com/show/452030/avatar-default.svg'}" class="w-12 h-12 rounded-full mb-2" alt="Persona">
+            <span class="font-semibold text-gray-700 truncate">${p.name}</span>
+            <span class="text-sm text-gray-500">${p.type}</span>
+          </div>`;
+        personaCarousel.insertAdjacentHTML('beforeend', personaCard);
+      });
+    }
+
+    // Update table
+    const tbody = document.querySelector("tbody");
+    tbody.innerHTML = "";
+    if (data.interactions?.length) {
+      data.interactions.forEach(i => {
+        const row = `<tr class="hover:bg-gray-50 transition-all duration-200">
+          <td class="px-6 py-3 font-medium text-gray-800">${i.customer}</td>
+          <td class="px-6 py-3 text-gray-600">${i.type}</td>
+          <td class="px-6 py-3 text-gray-500">${i.notes}</td>
+          <td class="px-6 py-3 text-gray-500 text-sm whitespace-nowrap">${i.date}</td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">No data available</td></tr>';
+    }
+
+    lastUpdatedEl.textContent = "🕒 Updated at " + new Date().toLocaleTimeString();
+  } catch (err) {
+    console.error(err);
+    lastUpdatedEl.textContent = "⚠️ Update failed";
+  }
+}
+
+fetchData();
+setInterval(fetchData, 60000);
+if (refreshBtn) refreshBtn.addEventListener('click', fetchData);
+</script>
+{% endblock %}

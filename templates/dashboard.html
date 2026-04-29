@@ -1,0 +1,154 @@
+{% extends "layout.html" %}
+{% from "components/cards.html" import stat_card %}
+{% from "components/table.html" import table %}
+
+{% block header_buttons %}
+<button id="refreshBtn" class="bg-white text-blue-600 px-3 py-2 rounded-lg font-semibold hover:bg-blue-50 transition">
+  Refresh
+</button>
+<div id="lastUpdated" class="text-sm opacity-80">Updated just now</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== Stats Grid ===== -->
+<div class="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-6" id="statsGrid">
+  {{ stat_card("Total Chats", 0, "blue") }}
+  {{ stat_card("New Messages", 0, "green") }}
+  {{ stat_card("Follow up", 0, "red") }}
+
+  <!-- RECTANGULAR PANEL for Personas -->
+  <div class="md:col-span-2 bg-white shadow-md rounded-2xl p-4 flex flex-col justify-between">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold text-gray-700">👥 Active Personas</h3>
+      <button class="text-blue-600 text-sm hover:underline">View All</button>
+    </div>
+
+    <!-- Image Carousel -->
+    <div class="relative">
+      <div id="personaCarousel" class="flex overflow-x-auto gap-4 no-scrollbar scroll-smooth">
+        <!-- Example Persona Cards -->
+        <div class="flex-none w-32 text-center">
+          <img src="/static/personas/p1.jpg" alt="Persona 1" class="w-24 h-24 rounded-full mx-auto object-cover shadow">
+          <p class="mt-2 font-medium text-gray-700 text-sm">Dr. Mehta</p>
+          <p class="text-xs text-gray-500">Pharmacist</p>
+        </div>
+        <div class="flex-none w-32 text-center">
+          <img src="/static/personas/p2.jpg" alt="Persona 2" class="w-24 h-24 rounded-full mx-auto object-cover shadow">
+          <p class="mt-2 font-medium text-gray-700 text-sm">Riya Shah</p>
+          <p class="text-xs text-gray-500">Retail Owner</p>
+        </div>
+        <div class="flex-none w-32 text-center">
+          <img src="/static/personas/p3.jpg" alt="Persona 3" class="w-24 h-24 rounded-full mx-auto object-cover shadow">
+          <p class="mt-2 font-medium text-gray-700 text-sm">Amit Verma</p>
+          <p class="text-xs text-gray-500">Distributor</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-center mt-3 gap-2">
+      <button onclick="scrollCarousel(-1)" class="bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1 rounded-full">◀</button>
+      <button onclick="scrollCarousel(1)" class="bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1 rounded-full">▶</button>
+    </div>
+  </div>
+
+  <!-- BALANCING CARD (Square) -->
+  <div class="bg-white shadow-md rounded-2xl p-4 flex flex-col justify-between">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold text-gray-700">🔔 Quick Actions</h3>
+    </div>
+    <div class="space-y-2 text-sm">
+      <button class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-lg font-semibold transition">Send Broadcast</button>
+      <button class="w-full bg-green-50 hover:bg-green-100 text-green-700 py-2 rounded-lg font-semibold transition">Add Follow-up</button>
+      <button class="w-full bg-yellow-50 hover:bg-yellow-100 text-yellow-700 py-2 rounded-lg font-semibold transition">View Reports</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Recent Chats Table ===== -->
+<section class="mt-10 bg-white shadow-md rounded-2xl overflow-hidden">
+  <div class="p-4 border-b">
+    <h3 class="text-lg font-semibold text-gray-700">Recent Chats</h3>
+  </div>
+  {{ table(headers=["User", "Message", "Timestamp"], rows=[]) }}
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // === Element References ===
+  const refreshBtn = document.getElementById('refreshBtn');
+  const lastUpdatedEl = document.getElementById('lastUpdated');
+  const statsGrid = document.getElementById('statsGrid');
+  const personaCarousel = document.getElementById('personaCarousel');
+  const tbody = document.querySelector("tbody");
+  
+  // === Smooth Scroll for Persona Carousel ===
+  function scrollCarousel(direction) {
+    if (!personaCarousel) return;
+    personaCarousel.scrollBy({ left: direction * 200, behavior: 'smooth' });
+  }
+  
+  // === Fetch and Update Dashboard Data ===
+  async function fetchData() {
+    try {
+      // Fetch API data
+      const res = await fetch('/api/chats/list');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+  
+      // === Update Stats Cards ===
+      const cards = statsGrid?.querySelectorAll('.card .value') || [];
+      if (cards.length >= 3) {
+        cards[0].textContent = data.total_chats ?? 0;
+        cards[1].textContent = data.new_messages ?? 0;
+        cards[2].textContent = data.follow_ups ?? 0;
+  
+        // Animate card values using GSAP
+        gsap.fromTo(".value", 
+          { y: -8, opacity: 0 }, 
+          { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: "power2.out" }
+        );
+      }
+  
+      // === Update Table ===
+      tbody.innerHTML = ""; // clear old rows
+      if (data.chats?.length) {
+        data.chats.forEach(chat => {
+          const rowHTML = `
+            <tr class="hover:bg-gray-50 transition-all duration-300">
+              <td class="px-6 py-3 font-medium text-gray-800 truncate">${chat.user}</td>
+              <td class="px-6 py-3 text-gray-600 truncate">${chat.message}</td>
+              <td class="px-6 py-3 text-gray-500 text-sm whitespace-nowrap">${chat.timestamp}</td>
+            </tr>`;
+          tbody.insertAdjacentHTML('beforeend', rowHTML);
+        });
+      } else {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="3" class="text-center py-4 text-gray-400">No data available</td>
+          </tr>`;
+      }
+  
+      // === Update Timestamp ===
+      lastUpdatedEl.textContent = "🕒 Updated at " + new Date().toLocaleTimeString();
+  
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      lastUpdatedEl.textContent = "⚠️ Update failed (" + err.message + ")";
+    }
+  }
+  
+  // === Event Listeners ===
+  if (refreshBtn) refreshBtn.addEventListener('click', () => {
+    gsap.to("#refreshBtn", { rotate: 360, duration: 0.6, ease: "power1.inOut" });
+    fetchData();
+  });
+  
+  // === Auto-refresh Every Minute ===
+  fetchData();
+  setInterval(fetchData, 60000);
+  </script>
+  
+{% endblock %}
